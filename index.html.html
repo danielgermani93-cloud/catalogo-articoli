@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Catalogo articoli</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-elevated: #111827;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --radius: 14px;
+      --shadow-soft: 0 18px 45px rgba(15,23,42,0.9);
+    }
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.94));
+      border-radius: 24px;
+      padding: 20px 18px 18px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148,163,184,0.2);
+      backdrop-filter: blur(18px);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .title-block { display: flex; flex-direction: column; gap: 2px; }
+    h1 { font-size: 1.3rem; margin: 0; letter-spacing: 0.03em; }
+    .subtitle { font-size: 0.8rem; color: var(--muted); }
+    .badge {
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: 999px; background: #22c55e;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(15,23,42,0.95);
+      border-radius: 999px;
+      padding: 3px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(55,65,81,0.9);
+    }
+    .tabs button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease-out;
+    }
+    .tabs button span.icon { font-size: 1rem; }
+    .tabs button.active {
+      background: radial-gradient(circle at top, #3b82f6, #1d4ed8);
+      color: #f9fafb;
+      box-shadow: 0 10px 25px rgba(37,99,235,0.5);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .section-card {
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.4), #020617);
+      border-radius: var(--radius);
+      padding: 14px;
+      border: 1px solid rgba(31,41,55,0.95);
+      box-shadow: 0 12px 35px rgba(15,23,42,0.9);
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .section-title { font-size: 0.9rem; font-weight: 500; }
+    .section-hint { font-size: 0.72rem; color: var(--muted); }
+
+    .search-wrapper { position: relative; margin-bottom: 10px; }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.9rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    #searchInput {
+      width: 100%;
+      padding: 10px 10px 10px 32px;
+      border-radius: 999px;
+      border: 1px solid rgba(55,65,81,0.9);
+      background: radial-gradient(circle at top, #020617, #020617);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out, background 0.18s ease-out;
+    }
+    #searchInput::placeholder { color: #6b7280; }
+    #searchInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.4);
+      background: radial-gradient(circle at top, #020617, #020617);
+    }
+
+    .results-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .results-container {
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(55,65,81,0.9) transparent;
+    }
+    .results-container::-webkit-scrollbar { width: 6px; }
+    .results-container::-webkit-scrollbar-track { background: transparent; }
+    .results-container::-webkit-scrollbar-thumb {
+      background: rgba(55,65,81,0.9);
+      border-radius: 999px;
+    }
+
+    .row-card {
+      border-radius: 12px;
+      border: 1px solid rgba(31,41,55,0.9);
+      padding: 9px 10px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #020617, rgba(15,23,42,0.98));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .row-main { min-width: 0; }
+    .row-code {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #f9fafb;
+      margin-bottom: 2px;
+    }
+    .row-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .row-chip {
+      font-size: 0.7rem;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #bfdbfe;
+      white-space: nowrap;
+    }
+    .no-results {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 14px 4px 4px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      border-radius: 14px;
+      border: 1px solid rgba(55,65,81,0.95);
+      background: radial-gradient(circle at top, #020617, #020617);
+      color: var(--text);
+      font-size: 0.82rem;
+      padding: 9px 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out, background 0.18s ease-out;
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      line-height: 1.4;
+    }
+    textarea::placeholder { color: #6b7280; }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.4);
+      background: radial-gradient(circle at top, #020617, #020617);
+    }
+    pre {
+      margin: 0 0 8px;
+      padding: 7px 9px;
+      font-size: 0.72rem;
+      background: rgba(15,23,42,0.95);
+      border-radius: 10px;
+      border: 1px dashed rgba(55,65,81,0.95);
+      color: var(--muted);
+      overflow-x: auto;
+    }
+
+    #btnImport {
+      margin-top: 8px;
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #f9fafb;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 14px 35px rgba(37,99,235,0.6);
+      transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, filter 0.1s ease-out;
+    }
+    #btnImport span.icon { font-size: 1rem; }
+    #btnImport:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: 0 8px 22px rgba(37,99,235,0.7);
+      filter: brightness(0.98);
+    }
+    #status {
+      margin-top: 6px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    @media (min-width: 640px) {
+      .row-desc { white-space: normal; }
+      .results-container { max-height: 420px; }
+    }
+
+    /* Modale edit */
+    #editModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .edit-panel {
+      width: 100%;
+      max-width: 420px;
+      background: #020617;
+      border-radius: 18px;
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(55,65,81,0.95);
+      box-shadow: 0 20px 55px rgba(0,0,0,0.7);
+    }
+    .edit-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .edit-title { font-size:0.9rem;font-weight:500; }
+    .edit-close {
+      border:none;background:transparent;color:#9ca3af;
+      font-size:1.1rem;cursor:pointer;
+    }
+    .edit-group {
+      display:flex;flex-direction:column;gap:8px;margin-bottom:8px;
+    }
+    .edit-label { font-size:0.75rem;color:#9ca3af; }
+    .edit-input {
+      width:100%;margin-top:2px;border-radius:10px;
+      border:1px solid rgba(55,65,81,0.95);
+      background:#020617;color:#e5e7eb;
+      padding:7px 9px;font-size:0.85rem;outline:none;
+    }
+    #editSave {
+      width:100%;border:none;border-radius:999px;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      color:#ecfdf5;padding:9px 10px;font-size:0.9rem;
+      font-weight:500;cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <header>
+      <div class="title-block">
+        <h1>Catalogo articoli</h1>
+        <div class="subtitle">Ricerca rapida e import massivo, ottimizzato per smartphone.</div>
+      </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Live
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button id="tabSearch" class="active">
+        <span class="icon">🔍</span><span>Ricerca</span>
+      </button>
+      <button id="tabManage">
+        <span class="icon">📥</span><span>Gestione</span>
+      </button>
+    </div>
+
+    <!-- Pagina Ricerca -->
+    <div id="pageSearch" class="page active">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Articoli</div>
+          <div class="section-hint">Filtra per codice o descrizione</div>
+        </div>
+
+        <div class="search-wrapper">
+          <span class="search-icon">🔎</span>
+          <input type="text" id="searchInput" placeholder="Es. 345/789 o WD40 5L">
+        </div>
+
+        <div class="results-meta">
+          <span id="resultsCount">0 articoli</span>
+          <span id="filterLabel">Nessun filtro</span>
+        </div>
+
+        <div class="results-container" id="resultsBody"></div>
+        <div class="no-results" id="noResults" style="display:none;">
+          Nessun articolo trovato per questa ricerca.
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagina Gestione -->
+    <div id="pageManage" class="page">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Import massivo</div>
+          <div class="section-hint">Una riga per articolo</div>
+        </div>
+
+        <pre>345/789 WD40 5L
+123/456 Vite M6x20 zincata</pre>
+
+        <textarea id="bulkInput"
+          placeholder="Incolla qui una lista di articoli.&#10;Esempio: 345/789 WD40 5L"></textarea>
+
+        <button id="btnImport">
+          <span class="icon">⬇️</span>
+          <span>Importa lista</span>
+        </button>
+        <div id="status"></div>
+      </div>
+    </div>
+
+    <!-- Modale modifica -->
+    <div id="editModal">
+      <div class="edit-panel">
+        <div class="edit-header">
+          <div class="edit-title">Modifica articolo</div>
+          <button id="editClose" class="edit-close">✕</button>
+        </div>
+        <div class="edit-group">
+          <div>
+            <div class="edit-label">Categorico</div>
+            <input id="editCode" type="text" class="edit-input">
+          </div>
+          <div>
+            <div class="edit-label">Descrizione</div>
+            <input id="editDesc" type="text" class="edit-input">
+          </div>
+        </div>
+        <button id="editSave">Salva modifiche</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let articoli = [];
+    let nextId = 1;
+
+    const tabSearch = document.getElementById('tabSearch');
+    const tabManage = document.getElementById('tabManage');
+    const pageSearch = document.getElementById('pageSearch');
+    const pageManage = document.getElementById('pageManage');
+    const searchInput = document.getElementById('searchInput');
+    const resultsBody = document.getElementById('resultsBody');
+    const bulkInput = document.getElementById('bulkInput');
+    const btnImport = document.getElementById('btnImport');
+    const status = document.getElementById('status');
+    const resultsCount = document.getElementById('resultsCount');
+    const filterLabel = document.getElementById('filterLabel');
+    const noResults = document.getElementById('noResults');
+
+    const editModal = document.getElementById('editModal');
+    const editClose = document.getElementById('editClose');
+    const editSave = document.getElementById('editSave');
+    const editCode = document.getElementById('editCode');
+    const editDesc = document.getElementById('editDesc');
+    let editingId = null;
+
+    function showPage(page) {
+      if (page === 'search') {
+        pageSearch.classList.add('active');
+        pageManage.classList.remove('active');
+        tabSearch.classList.add('active');
+        tabManage.classList.remove('active');
+      } else {
+        pageManage.classList.add('active');
+        pageSearch.classList.remove('active');
+        tabManage.classList.add('active');
+        tabSearch.classList.remove('active');
+      }
+    }
+    tabSearch.addEventListener('click', () => showPage('search'));
+    tabManage.addEventListener('click', () => showPage('manage'));
+
+    function renderResults(lista) {
+      resultsBody.innerHTML = '';
+      if (!lista.length) {
+        noResults.style.display = 'block';
+      } else {
+        noResults.style.display = 'none';
+      }
+
+      lista.forEach(item => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'row-card';
+        wrapper.dataset.id = item.id;
+
+        const main = document.createElement('div');
+        main.className = 'row-main';
+
+        const code = document.createElement('div');
+        code.className = 'row-code';
+        code.textContent = item.codice;
+
+        const desc = document.createElement('div');
+        desc.className = 'row-desc';
+        desc.textContent = item.descrizione || 'Nessuna descrizione';
+
+        main.appendChild(code);
+        main.appendChild(desc);
+
+        const right = document.createElement('div');
+        right.style.display = 'flex';
+        right.style.flexDirection = 'column';
+        right.style.alignItems = 'flex-end';
+        right.style.gap = '4px';
+
+        const chip = document.createElement('div');
+        chip.className = 'row-chip';
+        chip.textContent = 'Articolo';
+
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '4px';
+
+        const btnEdit = document.createElement('button');
+        btnEdit.textContent = '✏️';
+        btnEdit.title = 'Modifica';
+        Object.assign(btnEdit.style, {
+          border: 'none',
+          background: 'rgba(31,41,55,0.9)',
+          color: '#e5e7eb',
+          borderRadius: '999px',
+          width: '26px',
+          height: '26px',
+          cursor: 'pointer',
+          fontSize: '0.8rem'
+        });
+
+        const btnDel = document.createElement('button');
+        btnDel.textContent = '🗑';
+        btnDel.title = 'Elimina';
+        Object.assign(btnDel.style, {
+          border: 'none',
+          background: 'rgba(153,27,27,0.18)',
+          color: '#fecaca',
+          borderRadius: '999px',
+          width: '26px',
+          height: '26px',
+          cursor: 'pointer',
+          fontSize: '0.8rem'
+        });
+
+        btnEdit.addEventListener('click', () => openEditModal(item.id));
+        btnDel.addEventListener('click', () => deleteItem(item.id));
+
+        actions.appendChild(btnEdit);
+        actions.appendChild(btnDel);
+        right.appendChild(chip);
+        right.appendChild(actions);
+
+        wrapper.appendChild(main);
+        wrapper.appendChild(right);
+
+        resultsBody.appendChild(wrapper);
+      });
+
+      resultsCount.textContent = lista.length + (lista.length === 1 ? ' articolo' : ' articoli');
+    }
+
+    function filterArticoli(term) {
+      const t = term.trim().toLowerCase();
+      if (!t) {
+        filterLabel.textContent = 'Nessun filtro';
+        return articoli;
+      }
+      filterLabel.textContent = 'Filtro: "' + t + '"';
+      return articoli.filter(a =>
+        (a.codice + ' ' + a.descrizione).toLowerCase().includes(t)
+      );
+    }
+
+    searchInput.addEventListener('input', () => {
+      const filtrati = filterArticoli(searchInput.value);
+      renderResults(filtrati);
+    });
+
+    function parseLine(line) {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+
+      const parts = trimmed.split(/\s+/);
+      if (parts.length === 1) {
+        return { codice: parts[0], descrizione: '' };
+      }
+
+      let codice = parts[0];
+      let descStartIndex = 1;
+      for (let i = 0; i < parts.length; i++) {
+        if (/[^A-Za-z]/.test(parts[i])) {
+          codice = parts[i];
+          descStartIndex = i + 1;
+          break;
+        }
+      }
+      const descrizione = parts.slice(descStartIndex).join(' ');
+      return { codice, descrizione };
+    }
+
+    btnImport.addEventListener('click', () => {
+      const text = bulkInput.value;
+      const lines = text.split(/\r?\n/);
+      let aggiunti = 0;
+
+      lines.forEach(line => {
+        const r = parseLine(line);
+        if (r && r.codice) {
+          articoli.push({ id: nextId++, ...r });
+          aggiunti++;
+        }
+      });
+
+      status.textContent = aggiunti
+        ? 'Articoli aggiunti: ' + aggiunti
+        : 'Nessun articolo valido trovato.';
+      bulkInput.value = '';
+
+      const filtrati = filterArticoli(searchInput.value);
+      renderResults(filtrati);
+      showPage('search');
+    });
+
+    function deleteItem(id) {
+      if (!confirm('Eliminare questo articolo?')) return;
+      articoli = articoli.filter(a => a.id !== id);
+      const filtrati = filterArticoli(searchInput.value);
+      renderResults(filtrati);
+    }
+
+    function openEditModal(id) {
+      const art = articoli.find(a => a.id === id);
+      if (!art) return;
+      editingId = id;
+      editCode.value = art.codice;
+      editDesc.value = art.descrizione;
+      editModal.style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      editModal.style.display = 'none';
+      editingId = null;
+    }
+
+    editClose.addEventListener('click', closeEditModal);
+    editModal.addEventListener('click', e => {
+      if (e.target === editModal) closeEditModal();
+    });
+
+    editSave.addEventListener('click', () => {
+      if (editingId == null) return;
+      const code = editCode.value.trim();
+      const desc = editDesc.value.trim();
+      if (!code) {
+        alert('Il codice non può essere vuoto.');
+        return;
+      }
+      articoli = articoli.map(a =>
+        a.id === editingId ? { ...a, codice: code, descrizione: desc } : a
+      );
+      const filtrati = filterArticoli(searchInput.value);
+      renderResults(filtrati);
+      closeEditModal();
+    });
+
+    articoli = [
+      { id: nextId++, codice: '345/789', descrizione: 'WD40 5L' },
+      { id: nextId++, codice: '123/456', descrizione: 'Vite M6x20 zincata' }
+    ];
+    renderResults(articoli);
+  </script>
+</body>
+</html>
